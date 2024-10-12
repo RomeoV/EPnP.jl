@@ -25,21 +25,24 @@ function compute_pose(us, vs, c_w, αs)
     f_u = f_v = 40e-3;
     # This only seems to work if we put the z component first, which I don't really understand...
     M = vcat([
-        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), -(αs[i][j] * f_u), 0)' for j in 1:4)...);
-         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, -(αs[i][j] * f_v))' for j in 1:4)...)]
+        [hcat((SVector(αs[i][j] * +(us[i] - u_c), -αs[i][j] * f_u, 0)' for j in 1:4)...);
+         hcat((SVector(αs[i][j] * +(vs[i] - v_c), 0, -αs[i][j] * f_v)' for j in 1:4)...)]
         for i in eachindex(αs)]...)
 
     # @info size(nullspace(M))
     ker = nullspace(M)
-    c_c = if size(ker, 2) == 1
+    N = size(ker, 2)
+    c_c = if N == 1
         v_flat = SVector{12}(ker[:])
+        # this step is important, because the sign of the nullspace component is arbitrary,
+        # and beta will always be positive
         v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
         v = reshape(v_flat, Size(3, 4)) |> eachcol
 
         β = (sum(norm(v[i] - v[j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
-            sum(norm(v[i] - v[j])^2                       for i in 1:4, j in 1:4))
+             sum(norm(v[i] - v[j])^2                       for i in 1:4, j in 1:4))
         β .* v
-    else
+    else  # N > 1
         vs = [begin
             v_flat = SVector{12}(v_flat)
             v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
@@ -51,7 +54,7 @@ function compute_pose(us, vs, c_w, αs)
 
         β0 = [(sum(norm(vs[k][i] - vs[k][j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
                sum(norm(vs[k][i] - vs[k][j])^2                       for i in 1:4, j in 1:4))
-            for k in 1:size(ker, 2)]
+            for k in 1:N]
         prob = NonlinearLeastSquaresProblem(optimize_for_beta,
                                             β0,
                                             p = (; vs, c_w))
@@ -82,10 +85,8 @@ function compute_pose(us, vs, c_w, αs)
 end
 
 function optimize_for_beta(βs, (; vs, c_w))
-    [
-        norm(sum(βs .* vs)[i] - sum(βs .* vs)[j]) - norm(c_w[i] - c_w[j])
-        for i in 1:4, j in 1:4
-    ][:]
+    [norm(sum(βs .* vs)[i] - sum(βs .* vs)[j]) - norm(c_w[i] - c_w[j])
+     for i in 1:4, j in 1:4][:]
 end
 
 
