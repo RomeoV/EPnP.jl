@@ -29,7 +29,6 @@ function compute_pose(us, vs, c_w, αs)
          hcat((SVector(αs[i][j] * +(vs[i] - v_c), 0, -αs[i][j] * f_v)' for j in 1:4)...)]
         for i in eachindex(αs)]...)
 
-    # @info size(nullspace(M))
     ker = nullspace(M)
     N = size(ker, 2)
     c_c = if N == 1
@@ -68,7 +67,6 @@ function compute_pose(us, vs, c_w, αs)
 
         sum(βs .* vs)
     end
-    # @info v_flat
 
 
     C_c = hcat(c_c...)
@@ -79,7 +77,6 @@ function compute_pose(us, vs, c_w, αs)
     R = R_t[idx, idx]'
     t = R_t[idx, 4]
 
-    # @info R
     rots = Rotations.params(RotXYZ(R))
     return rots, t
 end
