@@ -31,17 +31,36 @@ c_w = (
 
 αs = compute_barycentric.(corners, [c_w])
 
-for _ in 1:1_000
-    cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
-    cam_rot_true_ = SVector(0.1*randn(), 0.1*randn(), 0.1*randn())
-    cam_rot_true = RotXYZ(cam_rot_true_...)
+@testset "many points" begin
+    for _ in 1:1_000
+        cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
+        cam_rot_true_ = SVector(0.1*randn(), 0.1*randn(), 0.1*randn())
+        cam_rot_true = RotXYZ(cam_rot_true_...)
 
-    projs = project.([cam_pos_true], [cam_rot_true], corners)
-    us = getindex.(projs, 1)
-    vs = getindex.(projs, 2)
+        projs = project.([cam_pos_true], [cam_rot_true], corners)
+        us = getindex.(projs, 1)
+        vs = getindex.(projs, 2)
 
-    rot, pos = compute_pose(us, vs, c_w, αs)
-    atol = sqrt(eps(eltype(pos)))
-    @test rot ≈ cam_rot_true_ atol=atol
-    @test pos ≈ cam_pos_true atol=atol
+        rot, pos = compute_pose(us, vs, c_w, αs)
+        atol = sqrt(eps(eltype(pos)))
+        @test rot ≈ cam_rot_true_ atol=atol
+        @test pos ≈ cam_pos_true atol=atol
+    end
+end
+
+@testset "fewer points" begin
+    for _ in 1:100
+        cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
+        cam_rot_true_ = SVector(0.1*randn(), 0.1*randn(), 0.1*randn())
+        cam_rot_true = RotXYZ(cam_rot_true_...)
+
+        projs = project.([cam_pos_true], [cam_rot_true], corners)
+        us = getindex.(projs, 1)
+        vs = getindex.(projs, 2)
+
+        rot, pos = compute_pose(us, vs, c_w, αs[1:4])
+        atol = sqrt(eps(eltype(pos)))
+        @test rot ≈ cam_rot_true_ atol=atol
+        @test pos ≈ cam_pos_true atol=atol
+    end
 end

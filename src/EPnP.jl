@@ -2,6 +2,7 @@ module EPnP
 using LinearAlgebra
 using StaticArrays
 using Rotations
+using SimpleNonlinearSolve
 
 export compute_barycentric
 export project
@@ -13,7 +14,6 @@ function compute_barycentric(p, refs)
   M = [hcat(refs...); sones(4)']
   M \ [p;1]
 end
-
 
 function project(cam_pos, cam_rot, pt; focal_length=40e-3)
     pt′ = cam_rot * (pt - cam_pos)
@@ -30,16 +30,44 @@ function compute_pose(us, vs, c_w, αs)
         for i in eachindex(αs)]...)
 
     # @info size(nullspace(M))
-    v_flat = SVector{12}(nullspace(M)[:,1])
-    v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
-    v = reshape(v_flat, Size(3, 4)) |> eachcol
+    ker = nullspace(M)
+    c_c = if size(ker, 2) == 1
+        v_flat = SVector{12}(ker[:])
+        v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
+        v = reshape(v_flat, Size(3, 4)) |> eachcol
+
+        β = (sum(norm(v[i] - v[j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
+            sum(norm(v[i] - v[j])^2                       for i in 1:4, j in 1:4))
+        β .* v
+    else
+        vs = [begin
+            v_flat = SVector{12}(v_flat)
+            v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
+            v = reshape(v_flat, Size(3, 4)) |> eachcol
+            v
+        end
+        for v_flat in eachcol(ker)]
+
+
+        β0 = [(sum(norm(vs[k][i] - vs[k][j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
+               sum(norm(vs[k][i] - vs[k][j])^2                       for i in 1:4, j in 1:4))
+            for k in 1:size(ker, 2)]
+        prob = NonlinearLeastSquaresProblem(optimize_for_beta,
+                                            β0,
+                                            p = (; vs, c_w))
+        res = solve(prob, SimpleNewtonRaphson(; autodiff=AutoForwardDiff());
+                    # maxiters=100,
+                    abstol=sqrt(eps(eltype(first(αs)))) / 10)
+                    # reltol=sqrt(eps(eltype(first(αs)))))
+        @assert SimpleNonlinearSolve.SciMLBase.successful_retcode(res) "$(res.retcode), $(res.resid)"
+        # @assert res.successful_retcode
+        βs = res.u
+
+        sum(βs .* vs)
+    end
     # @info v_flat
 
-    β = (sum(norm(v[i] - v[j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
-         sum(norm(v[i] - v[j])^2                       for i in 1:4, j in 1:4))
 
-
-    c_c = β .* v
     C_c = hcat(c_c...)
     C_w = hcat(c_w...)
 
@@ -52,5 +80,13 @@ function compute_pose(us, vs, c_w, αs)
     rots = Rotations.params(RotXYZ(R))
     return rots, t
 end
+
+function optimize_for_beta(βs, (; vs, c_w))
+    [
+        norm(sum(βs .* vs)[i] - sum(βs .* vs)[j]) - norm(c_w[i] - c_w[j])
+        for i in 1:4, j in 1:4
+    ][:]
+end
+
 
 end
