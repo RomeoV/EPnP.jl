@@ -15,15 +15,18 @@ corners = (
     # let's for now get at least six points.
     SVector(10*rand(), 10*rand(), 10*rand()),
     SVector(10*rand(), 10*rand(), 10*rand()),
+    SVector(10*rand(), 10*rand(), 10*rand()),
+    SVector(10*rand(), 10*rand(), 10*rand()),
 )
 
 
 # some arbitrarily chosen reference points in world coordinate system
 c_w = (
-    corners[1],
-    corners[2],
-    sum([corners[3], corners[4]])/2,
-    sum(corners) + SVector(0, 0, 10)
+    SVector(0, 0, 0.),
+    SVector(1000, 200, 0.),
+    SVector(4000, -200, 0.),
+    # sum([corners[3], corners[4]])/2,
+    sum(corners)./length(corners) + SVector(0, 0, 10)
 )
 
 αs = compute_barycentric.(corners, [c_w])
@@ -37,5 +40,6 @@ us = getindex.(projs, 1)
 vs = getindex.(projs, 2)
 
 rot, pos = compute_pose(us, vs, c_w, αs)
-@test rot ≈ cam_rot_true_
-@test pos ≈ cam_pos_true
+atol = sqrt(eps(eltype(pos)))
+@test rot ≈ cam_rot_true_ atol=atol
+@test pos ≈ cam_pos_true atol=atol

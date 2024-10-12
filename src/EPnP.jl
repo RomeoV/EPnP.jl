@@ -24,8 +24,8 @@ function compute_pose(us, vs, c_w, αs)
     u_c = 0; v_c = 0;
     f_u = f_v = 40e-3;
     M = vcat([
-        [hcat((SVector((αs[i][j] * -(us[i] - u_c)), (αs[i][j] * f_u), 0)' for j in 1:4)...);
-         hcat((SVector((αs[i][j] * -(vs[i] - v_c)), 0, (αs[i][j] * f_v))' for j in 1:4)...)]
+        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)' for j in 1:4)...);
+         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))' for j in 1:4)...)]
         for i in eachindex(αs)]...)
 
     v_flat = SVector{12}(nullspace(M)[:,1])
@@ -41,10 +41,10 @@ function compute_pose(us, vs, c_w, αs)
 
     R_t = ([C_c' sones(4)] \ C_w')'
     idx = SVector((1:3)...)
-    R = R_t[idx, idx]
+    R = R_t[idx, idx]'
     t = R_t[idx, 4]
 
-    rots = Rotations.params(RotXYZ(R')) ./ (2*pi)
+    rots = Rotations.params(RotXYZ(R))
     return rots, t
 end
 
