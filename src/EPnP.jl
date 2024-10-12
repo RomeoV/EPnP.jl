@@ -23,11 +23,24 @@ end
 function compute_pose(us, vs, c_w, αs)
     u_c = 0; v_c = 0;
     f_u = f_v = 40e-3;
+    # TODO: There are several strange things with this matrix.
+    # Basically, it only seems to work (sometimes) if we put the z component first.
+    # Then, there's still some ambiguity with the sign...
+    # Very strange. Would be good to figure out soon.
     M = vcat([
-        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)' for j in 1:4)...);
-         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))' for j in 1:4)...)]
+        [hcat((ntuple(Val(4)) do j
+            SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)'
+         end)...);
+         hcat((ntuple(Val(4)) do j
+            SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))'
+        end)...)]
         for i in eachindex(αs)]...)
+    # M = vcat([
+    #     [hcat((SVector((αs[i][j] * f_u), 0, (αs[i][j] * +(us[i] - u_c)) )' for j in 1:4)...);
+    #      hcat((SVector(0, (αs[i][j] * f_v), (αs[i][j] * +(vs[i] - v_c)) )' for j in 1:4)...)]
+    #     for i in eachindex(αs)]...)
 
+    # @info size(nullspace(M))
     v_flat = SVector{12}(nullspace(M)[:,1])
     v = reshape(v_flat, Size(3, 4)) |> eachcol
 
