@@ -31,9 +31,9 @@ c_w = (
 
 αs = compute_barycentric.(corners, [c_w])
 
-for _ in 1:100
+for _ in 1:1_000
     cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
-    cam_rot_true_ = SVector(0.1*2pi +randn(), 0.2*2pi+randn(), 0.3*2pi+randn()) .* 0
+    cam_rot_true_ = SVector(0.1*randn(), 0.1*randn(), 0.1*randn())
     cam_rot_true = RotXYZ(cam_rot_true_...)
 
     projs = project.([cam_pos_true], [cam_rot_true], corners)
