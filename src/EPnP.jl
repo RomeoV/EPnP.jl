@@ -55,7 +55,7 @@ function compute_pose(us, vs, c_w, αs)
         prob = NonlinearLeastSquaresProblem(optimize_for_beta,
                                             β0,
                                             p = (; vs, c_w))
-        res = solve(prob, SimpleNewtonRaphson(; autodiff=AutoForwardDiff());
+        res = solve(prob, SimpleTrustRegion(; autodiff=AutoForwardDiff());
                     # maxiters=100,
                     abstol=sqrt(eps(eltype(first(αs)))) / 10)
                     # reltol=sqrt(eps(eltype(first(αs)))))
