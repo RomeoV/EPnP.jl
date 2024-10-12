@@ -28,12 +28,8 @@ function compute_pose(us, vs, c_w, αs)
     # Then, there's still some ambiguity with the sign...
     # Very strange. Would be good to figure out soon.
     M = vcat([
-        [hcat((ntuple(Val(4)) do j
-            SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)'
-         end)...);
-         hcat((ntuple(Val(4)) do j
-            SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))'
-        end)...)]
+        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)' for j in 1:4)...);
+         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))' for j in 1:4)...)]
         for i in eachindex(αs)]...)
     # M = vcat([
     #     [hcat((SVector((αs[i][j] * f_u), 0, (αs[i][j] * +(us[i] - u_c)) )' for j in 1:4)...);
