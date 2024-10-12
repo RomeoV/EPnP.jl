@@ -28,8 +28,8 @@ function compute_pose(us, vs, c_w, αs)
     # Then, there's still some ambiguity with the sign...
     # Very strange. Would be good to figure out soon.
     M = vcat([
-        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), (αs[i][j] * f_u), 0)' for j in 1:4)...);
-         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, (αs[i][j] * f_v))' for j in 1:4)...)]
+        [hcat((SVector((αs[i][j] * +(us[i] - u_c)), -(αs[i][j] * f_u), 0)' for j in 1:4)...);
+         hcat((SVector((αs[i][j] * +(vs[i] - v_c)), 0, -(αs[i][j] * f_v))' for j in 1:4)...)]
         for i in eachindex(αs)]...)
     # M = vcat([
     #     [hcat((SVector((αs[i][j] * f_u), 0, (αs[i][j] * +(us[i] - u_c)) )' for j in 1:4)...);
@@ -38,7 +38,9 @@ function compute_pose(us, vs, c_w, αs)
 
     # @info size(nullspace(M))
     v_flat = SVector{12}(nullspace(M)[:,1])
+    v_flat *= sign(v_flat[findmax(abs, v_flat)[2]])
     v = reshape(v_flat, Size(3, 4)) |> eachcol
+    # @info v_flat
 
     β = (sum(norm(v[i] - v[j]) * norm(c_w[i] - c_w[j]) for i in 1:4, j in 1:4)/
          sum(norm(v[i] - v[j])^2                       for i in 1:4, j in 1:4))
@@ -53,6 +55,7 @@ function compute_pose(us, vs, c_w, αs)
     R = R_t[idx, idx]'
     t = R_t[idx, 4]
 
+    # @info R
     rots = Rotations.params(RotXYZ(R))
     return rots, t
 end

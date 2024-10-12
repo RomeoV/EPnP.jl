@@ -31,15 +31,17 @@ c_w = (
 
 αs = compute_barycentric.(corners, [c_w])
 
-cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
-cam_rot_true_ = SVector(0.1*2pi +randn(), 0.2*2pi+randn(), 0.3*2pi+randn()) .* 0
-cam_rot_true = RotXYZ(cam_rot_true_...)
+for _ in 1:100
+    cam_pos_true = SVector(-500e0 + 100*randn(), 0e0, 50e0+10*randn());
+    cam_rot_true_ = SVector(0.1*2pi +randn(), 0.2*2pi+randn(), 0.3*2pi+randn()) .* 0
+    cam_rot_true = RotXYZ(cam_rot_true_...)
 
-projs = project.([cam_pos_true], [cam_rot_true], corners)
-us = getindex.(projs, 1)
-vs = getindex.(projs, 2)
+    projs = project.([cam_pos_true], [cam_rot_true], corners)
+    us = getindex.(projs, 1)
+    vs = getindex.(projs, 2)
 
-rot, pos = compute_pose(us, vs, c_w, αs)
-atol = sqrt(eps(eltype(pos)))
-@test rot ≈ cam_rot_true_ atol=atol
-@test pos ≈ cam_pos_true atol=atol
+    rot, pos = compute_pose(us, vs, c_w, αs)
+    atol = sqrt(eps(eltype(pos)))
+    @test rot ≈ cam_rot_true_ atol=atol
+    @test pos ≈ cam_pos_true atol=atol
+end
